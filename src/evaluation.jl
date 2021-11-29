@@ -42,6 +42,9 @@ begin
     mach_XGBBoost=loadMachine("mach_XGB_Classifier.jlso")
     println("XBGBoost "* string(report(mach_XGBBoost).best_history_entry.measurement[1]))
 
+    mach_XGBBoost1=loadMachine("mach_XGB1_Classifier.jlso")
+    println("XBGBoost1 "* string(report(mach_XGBBoost1).best_history_entry.measurement[1]))
+
     mach_DecisionTree=loadMachine("mach_DecisionTree_Classifier.jlso")
     println("DecisionTree "* string(report(mach_DecisionTree).best_history_entry.measurement[1]))
 
@@ -53,5 +56,5 @@ end
 begin
     p_Random=plotMachine(mach_RandomForest, "RandomForest")
     report(mach_XGBBoost).best_model
-    p_XGB=plotMachine(mach_XGBBoost, "XGBBoost")
+    p_XGB1=plotMachine(mach_XGBBoost1, "XGBBoost")
 end
