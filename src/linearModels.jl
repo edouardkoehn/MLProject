@@ -14,6 +14,15 @@ begin
     dropmissing!(train)
     coerce!(train,:precipitation_nextday => Multiclass)
     train=train[shuffle(1:size(train, 1)),:]
+
+    train_PUY= hcat(select(train, r"PUY"), DataFrame(precipitation_nextday=train.precipitation_nextday))
+end
+#------------------------------------------------------------------
+#LogisticClassifier without restictrion
+
+begin
+    mach_Log_Classifier_MLJ_NoR= machine(LogisticClassifier(penalty=:none), select(train, Not(:precipitation_nextday)),train.precipitation_nextday)|> fit!
+    fitted_params(mach_Log_Classifier_MLJ_NoR)
 end
 #------------------------------------------------------------------
 #LogisticClassifier (MLJ) All
@@ -23,23 +32,23 @@ begin
         resampling = CV(nfolds = 10),
         tuning = Grid(),
         range=range(Log_Classifier_MLJ, :lambda,
-        lower = 1e-3, upper = 2e2,
+        lower = 1e-5, upper = 3e2,
         scale = :log),
         measure = auc)
     mach_Log_Classifier_MLJ=machine(self_Log_Classifier_MLJ, select(train, Not(:precipitation_nextday)),train.precipitation_nextday)|> fit!
     report(mach_Log_Classifier_MLJ)
 end
 begin
-        MLJ.save("models/mach_Log_Classifier_MLJ.jlso", mach_Log_Classifier_MLJ) 
+        exportMachine("mach_Log_Classifier_MLJ_ALL.jlso", mach_Log_Classifier_MLJ) 
 end
 #------------------------------------------------------------------
 #LogisticClassifier (MLJ) PUY
 begin
-    mach_Log_Classifier_MLJ_PUY=machine(self_Log_Classifier_MLJ, select(train,r"PUY", Not(:precipitation_nextday)),train.precipitation_nextday)|> fit!
-    report(mach_Log_Classifier_MLJ_PUY)
+    mach_Log_Classifier_MLJ_PUY=machine(self_Log_Classifier_MLJ, select(train_PUY, Not(:precipitation_nextday)),train_PUY.precipitation_nextday)|> fit!
+    report(mach_Log_Classifier_MLJ_PUY).best_model
 end
 begin
-    MLJ.save("models/mach_Log_Classifier_MLJ_PUY.jlso", mach_Log_Classifier_MLJ_PUY)
+    exportMachine("mach_Log_Classifier_MLJ_PUY.jlso", mach_Log_Classifier_MLJ_PUY)
 end
 #------------------------------------------------------------------
 #LogisticClassifier (MLJ) PUY L2 same results as the classic LogisticClassifier
@@ -52,68 +61,70 @@ begin
     self_KNN_Classifier=TunedModel(model = KNN_Classifier,
             resampling = CV(nfolds = 10),
             tuning = Grid(),
-            range=range(KNN_Classifier, :K, values = 50:200),
+            range=range(KNN_Classifier, :K, values = 1:70),
             measure = auc)
-        mach_KNN_Classifier_PUY=machine(self_KNN_Classifier, select(train,r"PUY", Not(:precipitation_nextday)),train.precipitation_nextday)|> fit!
-        report(mach_KNN_Classifier_PUY)
+        mach_KNN_Classifier_PUY=machine(self_KNN_Classifier, select(train_PUY, Not(:precipitation_nextday)),train_PUY.precipitation_nextday)|> fit!
+        report(mach_KNN_Classifier_PUY).best_model
 end
 begin
     
-    MLJ.save("models/mach_KNN_Classifier_MLJ_PUY.jlso", mach_KNN_Classifier_PUY)
+    exportMachine("mach_KNN_Classifier_MLJ_PUY.jlso", mach_KNN_Classifier_PUY)
 end
 
 #------------------------------------------------------------------
 #KNNClassifier (MLJ) ALL
 begin
         mach_KNN_Classifier_ALL=machine(self_KNN_Classifier, select(train, Not(:precipitation_nextday)),train.precipitation_nextday)|> fit!
-        report(mach_KNN_Classifier_ALL)
+        report(mach_KNN_Classifier_ALL).best_model
 end
 begin
-    MLJ.save("models/mach_KNN_Classifier_MLJ_ALL.jlso", mach_KNN_Classifier_ALL)
+    exportMachine("mach_KNN_Classifier_MLJ_ALL.jlso", mach_KNN_Classifier_ALL)
 end
 
 #------------------------------------------------------------------
 #Mutlinomial classifier --> really bad results
 #--------------------------------------------------------------
-#LogisticClassifier (MLJ) PUY standerdized -> performing badly
+#LogisticClassifier (MLJ) standerdized -> performing badly
 begin
     train_std_mach=fit!(machine(Standardizer(), select(train, Not(:precipitation_nextday))));
     train_std= MLJ.transform(train_std_mach, train)
     mach_Log_Classifier_Std_MLJ_ALL=machine(self_Log_Classifier_MLJ, select(train_std, Not(:precipitation_nextday)),train_std.precipitation_nextday)|> fit!
-    report(mach_Log_Classifier_Std_MLJ_ALL)
+    report(mach_Log_Classifier_Std_MLJ_ALL).best_model
 end
 begin 
-    MLJ.save("models/mach_Log_Classifier_STD_MLJ_ALL.jlso", mach_Log_Classifier_Std_MLJ_ALL)
+    exportMachine("mach_Log_Classifier_STD_MLJ_ALL.jlso", mach_Log_Classifier_Std_MLJ_ALL)
 end
 
 #--------------------------------------------------------------
-#KNNClassifier (MLJ) PUY standerdized -> performing badly
+#KNNClassifier (MLJ) PUY standerdized -> performing badly (not working for the moment)
 begin
-    mach_KNN_Classifier_Std=machine(self_KNN_Classifier, select(train_std, Not(:precipitation_nextday)),train_std.precipitation_nextday)|> fit!
-    report(mach_KNN_Classifier_Std)
+    mach_KNN_Classifier_ALL_Std=machine(self_KNN_Classifier, select(train_std, Not(:precipitation_nextday)),train_std.precipitation_nextday)|> fit!
+    report(mach_KNN_Classifier_ALL_Std)
 end
 begin 
-    MLJ.save("models/mach_KNN_Classifier_STD_MLJ_ALL.jlso", mach_KNN_Classifier_Std)
+    report(mach_KNN_Classifier_ALL_Std).best_model
+    exportMachine("mach_KNN_Classifier_STD_MLJ_ALL.jlso", mach_KNN_Classifier_ALL_Std)
 end
 #--------------------------------------------------------------
-#plotting KNN
+#RidgleClassifier --> not working
 begin
-    scatter(reshape(report(mach_KNN_Classifier_ALL).plotting.parameter_values, :),
-    report(mach_KNN_Classifier_ALL).plotting.measurements, xlabel = report(mach_KNN_Classifier_ALL).plotting.parameter_names[1], ylabel = "AUC", lable="KNN All")
-
-    scatter!(reshape(report(mach_KNN_Classifier).plotting.parameter_values, :),
-    report(mach_KNN_Classifier).plotting.measurements, xlabel = report(mach_KNN_Classifier).plotting.parameter_names[1], ylabel = "AUC", label="KNN PUY")
+    using MLJScikitLearnInterface
+    Ridge_Classifier =  RidgeClassifier() 
+    self_Ridge_Classifier=TunedModel(model = Ridge_Classifier,
+            resampling = CV(nfolds = 5),
+            tuning = Grid(),
+            range=range(Ridge_Classifier, :alpha,values = 1:100),
+            measure = auc)
+        mach_Ridge_Classifier=machine(self_Ridge_Classifier, select(train, Not(:precipitation_nextday)),train.precipitation_nextday)|> MLJ.fit!
+        report(mach_Ridge_Classifier)
 end
 
+#--------------------------------------------------------------
+#AdaBoostStumpClassifier
 begin
-    scatter(reshape(report(mach_Log_Classifier_MLJ).plotting.parameter_values, :),
-    report(mach_Log_Classifier_MLJ).plotting.measurements, xlabel = report(mach_Log_Classifier_MLJ).plotting.parameter_names[1], ylabel = "AUC", label="Log All")
-
-    scatter!(reshape(report(mach_Log_Classifier_MLJ_PUY).plotting.parameter_values, :),
-    report(mach_Log_Classifier_MLJ_PUY).plotting.measurements, xlabel = report(mach_Log_Classifier_MLJ_PUY).plotting.parameter_names[1], ylabel = "AUC", label="Log PUY")
-
+    using DecisionTree
+    AdaBoostStump_Classifier =  AdaBoostStumpClassifier(n_iterations=100) 
     
-    scatter!(reshape(report(mach_Log_Classifier_Std_MLJ_PUY).plotting.parameter_values, :),
-    report(mach_Log_Classifier_Std_MLJ_PUY).plotting.measurements, xlabel = report(mach_Log_Classifier_Std_MLJ_PUY).plotting.parameter_names[1], ylabel = "AUC", label="Log PUY")
+    mach_AdaBoostStump_Classifier=machine(AdaBoostStump_Classifier, select(train, Not(:precipitation_nextday)),train.precipitation_nextday)|> fit!
+        report(mach_Ridge_Classifier)
 end
-

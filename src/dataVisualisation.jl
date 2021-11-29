@@ -14,7 +14,7 @@ begin
     coerce!(train,:precipitation_nextday => Multiclass)
     coerce!(train_cleaned,:precipitation_nextday => Multiclass)
 end
-
+train.precipitation_nextday
 begin
     train_info =describe(train[:,r"PUY"],:mean, :min, :median, :max ,:std, :nmissing)
     test_info  =describe(test[:,r"PUY"],:mean, :min, :median, :max ,:std, :nmissing)
@@ -59,8 +59,9 @@ end
 
 #Corrolation plot betwenn the predictores
 begin
+    using StatsPlots
     data_avg= DataFrame( T_1= temp_1,T_2= temp_2,T_3= temp_3,T_4= temp_4, Sun_1=sun_1, Sun_2=sun_2, Sun_3=sun_3, Sun_4=sun_4, P_1=pressure_1, P_2=pressure_2, P_3=pressure_3, P_4=pressure_4 )
-    p_corr=@df data_avg corrplot([:Sun_1 :T_1 :P_1])
+    p_corr=@df data_avg corrplot([:T_1 :Sun_1 :P_1 :T_2])
     savefig(p_corr, "figures/Plot_corr_AVG_data.pdf")
 end
 
