@@ -9,17 +9,26 @@ begin
 
     train=CSV.read(joinpath(@__DIR__, "..", "data", "trainingdata.csv"), DataFrame)
     println("Shape of the training set :" ,size(train))
+    coerce!(train,:precipitation_nextday => Multiclass)
+
     train_cleaned=dropmissing(train)
     println("Shape of the training set cleaned :" ,size(train_cleaned))
-    coerce!(train,:precipitation_nextday => Multiclass)
     coerce!(train_cleaned,:precipitation_nextday => Multiclass)
+
+    train_filled= MLJ.transform(fit!(machine(FillImputer(), train)), train)
+    println("Shape of the training set cleaned :" ,size(train_filled))
+    coerce!(train_filled,:precipitation_nextday => Multiclass)
+
 end
-train.precipitation_nextday
+# data set statistics
 begin
     train_info =describe(train[:,r"PUY"],:mean, :min, :median, :max ,:std, :nmissing)
     test_info  =describe(test[:,r"PUY"],:mean, :min, :median, :max ,:std, :nmissing)
+    filled_info =describe(train_filled[:,r"PUY"],:mean, :min, :median, :max ,:std, :nmissing)
+
     CSV.write("data/train_PUY_info.csv", train_info)
     CSV.write("data/test_PUY_info.csv", test_info)
+    CSV.write("data/filled_PUY_info.csv", filled_info)
     @df train_cleaned boxplot([:PUY_air_temp_1 :PUY_air_temp_2 :PUY_air_temp_3 :PUY_air_temp_4],yaxis="[C]",Layout=(boxmode="group"))
     subplot = twinx()
     @df train_cleaned boxplot!(subplot,[:PUY_delta_pressure_1 :PUY_delta_pressure_2 :PUY_delta_pressure_3 :PUY_delta_pressure_4], yaxis="[hpa]", size= (800, 500),Layout=(boxmode="group"))
@@ -68,4 +77,28 @@ end
 #Complete figure
 begin
     savefig(plot(p_temp, p_pressure,p_sun, layout=(3,1), size=(700,1000)), "figures/Plot_AVG_data.pdf")
+end
+
+# Perform a PCA
+begin
+    using MLJMultivariateStatsInterface, Statistics, LinearAlgebra,MultivariateStats, MLJ
+   
+    pca_train= transpose(Array(select(train_cleaned, Not(:precipitation_nextday))))
+    pca_label=train_cleaned.precipitation_nextday
+    
+    M = fit!(machine(MLJMultivariateStatsInterface.PCA(pratio=1, maxoutdim=4), pca_train))
+    pca_train_transformed =MLJ.transform(M, pca_train)
+
+    plot(pca_train_transformed.x1, pca_train_transformed.x2, seriestype=:scatter, label="")
+end
+# Correlation between the predictors
+begin
+    corMatrix=cor(Matrix(select(train_cleaned, Not(:precipitation_nextday))))
+    corMatrix[1:end .==1]
+    corrplot(M)
+    df_corMatrix=DataFrame(corMatrix, :auto)
+
+    df_corMatrix[df_corMatrix .==1]
+    print(findall(x->findall(x->x==1, corMatrix))
+
 end

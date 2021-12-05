@@ -1,6 +1,6 @@
 #main file for the submission
 begin
-    using CSV, DataFrames, Plots,MLJ,MLJLinearModels,StatsPlots
+    using CSV, DataFrames, Plots,MLJ,MLJLinearModels,StatsPlots, Random
     include("utils.jl")
     test=CSV.read(joinpath(@__DIR__, "..", "data", "testdata.csv"), DataFrame)
     dropmissing!(test)
@@ -11,6 +11,19 @@ begin
     train=train[shuffle(1:size(train, 1)),:]
 end
 
+#Benchmark submission LG L2 lambda=, trained on all the data
+begin
+    model_sub_3=LogisticClassifier(lambda = 774263.6826811269,
+            gamma = 0.0,
+            penalty = :l2,
+            fit_intercept = true,
+            penalize_intercept = false,
+            solver = nothing)
+    machine_sub_3=machine(model_sub_3,select(train, Not(:precipitation_nextday)),train.precipitation_nextday)|> fit!
+end
+begin
+    writeSubmission(test, machine_sub_3,"Sumission_LR_L2(lambda=774263).csv")
+end
 #Benchmark submission KNN K=34, trained on all the data
 begin
     model_sub_1=KNNClassifier(K = 34,algorithm = :kdtree,metric = Euclidean(0.0),leafsize = 10,reorder = true,weights = Uniform())
@@ -41,3 +54,37 @@ begin
     writeSubmission(test, machine_sub_2,"Sumission_XGB_1.1.csv")
 end
 
+#Benchmark sumission NN optimised
+begin
+    model_sub_4=NeuralNetworkClassifier(builder = MLJFlux.Short(n_hidden = 125,dropout = 0.2,σ = relu),
+                                        optimiser = ADAM(0.001, (0.9, 0.999), IdDict{Any,Any}()),
+                                        loss = Flux.crossentropy,
+                                        batch_size = 500,
+                                        lambda = 0.0,
+                                        alpha = 0.0,
+                                        epochs= 1000,
+                                        optimiser_changes_trigger_retraining = false)
+    machine_sub_4= machine(model_sub_4,select(train, Not(:precipitation_nextday)),train.precipitation_nextday)|> MLJ.fit!
+end
+begin
+    evaluate!(machine_sub_4, measure=auc)
+    writeSubmission(test, machine_sub_4, "Submission_NN_opt.csv")
+end
+
+#Benchmark sumission RandomForest n=383
+begin
+    model_sub_5=RandomForestClassifier(
+        max_depth = -1,
+        min_samples_leaf = 1,
+        min_samples_split = 2,
+        min_purity_increase = 0.0,
+        n_subfeatures = -1,
+        n_trees = 383,
+        sampling_fraction = 0.7,
+        pdf_smoothing = 0.0)
+    machine_sub_5= machine(model_sub_5,select(train, Not(:precipitation_nextday)),train.precipitation_nextday)|> MLJ.fit!
+end
+begin
+    evaluate!(machine_sub_5, measure=auc)
+    writeSubmission(test, machine_sub_5, "Submission_RandomForest_383.csv")
+end
