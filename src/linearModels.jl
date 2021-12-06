@@ -1,40 +1,33 @@
-#Main file for testing the different linear MLJLinearModels
+### Main file for testing the different linear MLJLinearModels
 begin
     using CSV, DataFrames, Plots,MLJ,MLJLinearModels,StatsPlots
     include("utils.jl")
 end
-#------------------------------------------------------------------
-# Import of the data test
-begin
-    test=CSV.read(joinpath(@__DIR__, "..", "data", "testdata.csv"), DataFrame)
-    dropmissing!(test)
-  
-    train=CSV.read(joinpath(@__DIR__, "..", "data", "trainingdata.csv"), DataFrame)
-    coerce!(train,:precipitation_nextday => Multiclass)
-    train=train[shuffle(1:size(train, 1)),:]
 
-    train_filled= MLJ.transform(fit!(machine(FillImputer(), train)), train)
-    coerce!(train_filled,:precipitation_nextday => Multiclass)
-    train_filled=train_filled[shuffle(1:size(train_filled, 1)),:]
-    
-    dropmissing!(train)
-    
+### Import of the data test
+begin
+    #import test
+    test=importTest()
+    #import cleaned train
+    train=importTrainCleaned()
+    #import filled train
+    train_filled=importTrainFilled()
+    #subset for PUY weather station  
     train_PUY= hcat(select(train, r"PUY"), DataFrame(precipitation_nextday=train.precipitation_nextday))
 end
-#------------------------------------------------------------------
-#LogisticClassifier without restictrion
 
+### LogisticClassifier 
+
+##  LogisticClassifier (MLJ) ALL No Regularisation
 begin
     mach_Log_Classifier_MLJ_NoR= machine(LogisticClassifier(penalty=:none), select(train, Not(:precipitation_nextday)),train.precipitation_nextday)|> fit!
     evaluate!(mach_Log_Classifier_MLJ_NoR, measure=auc)
 end
-
 begin
     exportMachine("mach_Log_Classifier_MLJ_NoR.jlso", mach_Log_Classifier_MLJ_NoR) 
-    
 end
-#------------------------------------------------------------------
-#LogisticClassifier (MLJ) All L1 
+
+## LogisticClassifier (MLJ) ALL L1
 begin
     Log_Classifier_MLJ_L1= LogisticClassifier(penalty=:l1)
     self_Log_Classifier_MLJ_L1=TunedModel(model = Log_Classifier_MLJ_L1,
@@ -52,8 +45,7 @@ begin
     exportMachine("mach_Log_Classifier_MLJ_L1.jlso", mach_Log_Classifier_MLJ_L1) 
 end
 
-#------------------------------------------------------------------
-#LogisticClassifier (MLJ) L2
+## LogisticClassifier (MLJ) ALL L2
 begin
     Log_Classifier_MLJ_L2= LogisticClassifier(penalty=:l2)
     self_Log_Classifier_MLJ_L2=TunedModel(model = Log_Classifier_MLJ_L2,
@@ -71,18 +63,16 @@ begin
     exportMachine("mach_Log_Classifier_MLJ_L2.jlso", mach_Log_Classifier_MLJ_L2) 
 end
 
-#------------------------------------------------------------------
-#LogisticClassifier (MLJ) PUY No Regularisation
+## LogisticClassifier (MLJ) PUY No Regularisation
 begin
     mach_Log_Classifier_MLJ_PUY=machine(LogisticClassifier(penalty=:none), select(train_PUY, Not(:precipitation_nextday)),train_PUY.precipitation_nextday)|> fit!
     evaluate!(mach_Log_Classifier_PUY, measure=auc)
 end
-
 begin
     exportMachine("mach_Log_Classifier_MLJ_PUY_NoR.jlso", mach_Log_Classifier_MLJ_PUY)
 end
-#------------------------------------------------------------------
-#LogisticClassifier (MLJ) PUY L1
+
+##LogisticClassifier (MLJ) PUY L1
 begin
     Log_Classifier_MLJ_PUY_L1= LogisticClassifier(penalty=:l1)
     self_Log_Classifier_MLJ_PUY_L1=TunedModel(model = Log_Classifier_MLJ_PUY_L1,
@@ -101,8 +91,7 @@ begin
     exportMachine("mach_Log_Classifier_MLJ_PUY_L1.jlso", mach_Log_Classifier_MLJ_PUY_L1)
 end
 
-#------------------------------------------------------------------
-#LogisticClassifier (MLJ) PUY L2
+##LogisticClassifier (MLJ) PUY L2
 begin
     Log_Classifier_MLJ_PUY_L2= LogisticClassifier(penalty=:l2)
     self_Log_Classifier_MLJ_PUY_L2=TunedModel(model = Log_Classifier_MLJ_PUY_L2,
@@ -120,8 +109,8 @@ begin
     evaluate!(mach_Log_Classifier_PUY_L2, measure=auc)
     exportMachine("mach_Log_Classifier_MLJ_PUY_L2.jlso", mach_Log_Classifier_MLJ_PUY_L2)
 end
-#------------------------------------------------------------------
-#LogisticClassifier (MLJ) filled data
+
+##LogisticClassifier (MLJ) filled data ALL L2
 begin
     mach_Log_Classifier_MLJ_Filled_L2=machine(self_Log_Classifier_MLJ_L2, select(train_filled, Not(:precipitation_nextday)),train_filled.precipitation_nextday)|> fit!
     report(mach_Log_Classifier_MLJ_Filled_L2).best_model
@@ -129,8 +118,8 @@ end
 begin
     exportMachine("mach_Log_Classifier_MLJ_Filled_L2.jlso", mach_Log_Classifier_MLJ_Filled_L2)
 end
-#------------------------------------------------------------------
-#LogisticClassifier (MLJ) standerdized -> performing badly
+
+## LogisticClassifier (MLJ) standerdized data ALL No Regularisation
 begin
     train_std_mach=machine(Standardizer(), select(train, Not(:precipitation_nextday)))|>fit!
     train_std= MLJ.transform(train_std_mach, train)

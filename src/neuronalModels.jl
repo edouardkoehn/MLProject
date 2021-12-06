@@ -1,18 +1,21 @@
+### Main file for optimising neuronal network
+
+##Load the daata
 begin
     using CSV, DataFrames, Plots,MLJ,MLJFlux,Random,NNlib, Flux
     include("utils.jl")
+
+    #import test
+    test=importTest()
+    #import cleaned train
+    train=importTrainCleaned()
+    #import filled train
+    train_filled=importTrainFilled()
+    #subset for PUY weather station  
+    train_PUY= hcat(select(train, r"PUY"), DataFrame(precipitation_nextday=train.precipitation_nextday))
 end
-#Load the daata
-begin
-    test=CSV.read(joinpath(@__DIR__, "..", "data", "testdata.csv"), DataFrame)
-    dropmissing!(test)
-  
-    train=CSV.read(joinpath(@__DIR__, "..", "data", "trainingdata.csv"), DataFrame)
-    dropmissing!(train)
-    coerce!(train,:precipitation_nextday => Multiclass)
-end
-#-------------------------------------------------------------------
-# Neuronal tuning process
+
+## Neuronal tuning process
 begin
     model_NN = NeuralNetworkClassifier( builder = MLJFlux.Short(n_hidden = 200,σ = relu, dropout=0.1),
                                     optimiser = ADAM(),
@@ -41,8 +44,7 @@ begin
     evaluate!(mach_NN_1, measure=auc)
 end
 
-#-------------------------------------------------------------------
-# Neuronal optimised
+## Neuronal network optimised
 begin
     model_NN_simple=NeuralNetworkClassifier(builder = MLJFlux.Short(n_hidden = 125,
                                                             dropout = 0.2,
@@ -60,5 +62,5 @@ begin
     evaluate!(mach_NN_2,measure=auc)
     exportMachine("mach_NN_optimised.jlso", mach_NN_2)
 end
-#-------------------------------------------------------------------
+
 

@@ -36,9 +36,9 @@ end
 #Treebased classifier
 begin
     mach_XGBBoost=loadMachine("mach_XGB_Classifier.jlso")
-    predict(mach_XGBBoost, select(train, Not(:precipitation_nextday)))
     println("XBGBoost "* string(mean(CV_Auc(mach_XGBBoost, train, 10))))
     mach_XGBBoost1=loadMachine("mach_XGB1_Classifier.jlso")
+    report(mach_XGBBoost1)
     println("XBGBoost1 "* string(mean(CV_Auc(mach_XGBBoost1, train, 10))))
     mach_DecisionTree=loadMachine("mach_DecisionTree_Classifier.jlso")
     println("DecisionTree "* string(mean(CV_Auc(mach_DecisionTree, train, 10))))
