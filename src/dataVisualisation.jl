@@ -17,15 +17,20 @@ begin
 
     # filled training data
     train_filled= importTrainFilled()
+
+    # Standardizer and cleaned training data
+    train_std= MLJ.transform(fit!(machine(Standardizer(),select(train_cleaned, Not(:precipitation_nextday)))))
 end
 
 ## Data set statistics
 begin
     #get the general data set statistics
     train_info =describe(train,:mean, :min, :median, :max ,:std, :nmissing)
-    train_cleaned=describe(train_cleaned,:min, :median, :max ,:std, :nmissing)
+    train_cleaned_info=describe(train_cleaned,:min, :median, :max ,:std, :nmissing)
     test_info  =describe(test,:mean, :min, :median, :max ,:std, :nmissing)
     filled_info =describe(train_filled,:mean, :min, :median, :max ,:std, :nmissing)
+
+    print("Train:: %True: " ,  count(train_cleaned.precipitation_nextday .==true)/size(train_cleaned)[1], ",%False: ",(count(train_cleaned.precipitation_nextday .==false)/size(train_cleaned)[1]))
 end
 begin
     #Plot the distribution of missing data in the dataset
@@ -77,23 +82,44 @@ begin
 end
 begin
     # Correlation Matrix on the predictors
-    corMatrix=broadcast(abs,cor(Matrix(select(train_cleaned, Not(:precipitation_nextday)))))
+    using CategoricalArrays
+    #Correlation between the predictors
+    corMatrix_Predictors= broadcast(abs,cor(Matrix(train_std)))
+    heatmap(1:24,1:24, (corMatrix_Predictors[1:24,1:24]),c=cgrad([:blue, :white,:red, :yellow]), xlabel="Predictors", ylabel="Predictors",title="Correlation between the classifier", figsize=(1000,1000))
     
-    heatmap(1:size(corMatrix)[1],1:size(corMatrix)[2], (corMatrix[1:100,1:100]),c=cgrad([:blue, :white,:red, :yellow]),xlabel="Predictors", ylabel="Predictors",title="Corrolation between the classifier", figsize=(1000,1000))
-    heatmap(1:100,1:100, (corMatrix[1:100,1:100]),c=cgrad([:blue, :white,:red, :yellow]),xlabel="Predictors", ylabel="Predictors",title="Corrolation between the classifier", figsize=(1000,1000))
-    heatmap(1:50,1:50, (corMatrix[1:50,1:50]),c=cgrad([:blue, :white,:red, :yellow]),xlabel="Predictors", ylabel="Predictors",title="Corrolation between the classifier", figsize=(1000,1000))
-
+    #Correlation between each predictors and the responses
+    corMatrix_Responses=broadcast(abs,(cor(Matrix(train_std), levelcode.(train_cleaned.precipitation_nextday)[:,1])))
+    names_station=names(train_cleaned)
+    pop!(names_station);replace!(corMatrix_Responses, NaN=>0)
+    corMatrix_Responses=hcat(corMatrix_Responses,names_station)  
+    corMatrix_Responses=corMatrix_Responses[sortperm(corMatrix_Responses[:,1],rev=true),:]
+    bar(corMatrix_Responses[1:20,1],orientation=:h,title="10 best predictors (p_value)",yticks=(1:20, corMatrix_Responses[1:20,2]), yflip=true, label="pvalue")
+   corMatrix_Responses
 end
 
 ## Perform a PCA
 begin
-    using MLJMultivariateStatsInterface, MultivariateStats
-   
-    pca_train= (Array(select(train_cleaned, Not(:precipitation_nextday))))
+    #Generates the PCA
+    using StatsBase,MLJMultivariateStatsInterface
+    pca_train= (Matrix(train_std))
+    replace!(pca_train, Inf=>NaN)
+    replace!(pca_train, NaN=>0)
     pca_label=train_cleaned.precipitation_nextday
-    
-    M = fit!(machine(MLJMultivariateStatsInterface.PCA( pratio=1, maxoutdim=4), pca_train))
-    pca_train_transformed =MLJ.transform(M, pca_train)
-    (pca_train)
-    scatter(pca_train_transformed.x2, pca_train_transformed.x3,  mc = [:navy, :crimson],label=pca_label,xlabel="PCA1", ylabel="PCA2")
+    mach_pca=fit!(machine(PCA(pratio=0.99),pca_train))
+    pca_train=MLJ.transform(mach_pca,pca_train)
+    plot_data=DataFrame(PC1=(pca_train.x1),
+                            PC2=(pca_train.x2), 
+                            PC3=pca_train.x3,
+                            PC4=pca_train.x4,
+                            lab=pca_label)
+end
+begin
+    #Plot PCA1 - PCA2
+    scatter(plot_data[plot_data.lab .==true,"PC1"], plot_data[plot_data.lab .==true,"PC2"], label="Rainning next day",xlabel="PCA1", ylabel="PCA2", color="red")
+    scatter!(plot_data[plot_data.lab .==false,"PC1"], plot_data[plot_data.lab .==false,"PC2"], label="Not rainning next day",xlabel="PCA1", ylabel="PCA2", color="blue")
+end
+begin
+    #Plot PCA1 - PCA3
+    scatter(plot_data[plot_data.lab .==true,"PC1"], plot_data[plot_data.lab .==true,"PC4"], label="Rainning next day",xlabel="PCA1", ylabel="PCA3", color="red")
+    scatter!(plot_data[plot_data.lab .==false,"PC1"], plot_data[plot_data.lab .==false,"PC4"], label="Not rainning next day",xlabel="PCA1", ylabel="PCA3", color="blue")
 end
