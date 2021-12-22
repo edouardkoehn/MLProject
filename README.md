@@ -13,6 +13,6 @@ It contains all the submission uploaded on Kaggle
 
 ## Wokflow
 For this project, we began to do a data exploration with the script `dataVisualisation.jl`. Then we generated several models with the following scripts : `linearModels.jl`, `otherModels.jl` and `neuronalModels.jl`. We did the models evaluation in an other scripts :`evaluation.jl`.
-Finally, we generated a submission with the script `submission.jl`
+Finally, we generated the submissions with the script `submission.jl`
 
 Edouard Koehn
