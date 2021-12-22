@@ -1,7 +1,7 @@
 using MLJ, CSV, NearestNeighborModels,MLJFlux,Flux,MLJXGBoostInterface
 
 function exportMachine(fileName,model )
-    #Methods for saving tained machine 
+    a#Methods for saving tained machine 
     MLJ.save(joinpath(@__DIR__, "..", "models", fileName),model)
 end
 
@@ -17,14 +17,18 @@ function plotMachine(machine,name)
 	    rep.plotting.measurements,label = rep.plotting.parameter_names[1], ylabel = "AUC", title=name)
 end
 
+function getMeasurements(machine)
+    #Simple methods that returns the measurement of a trained machine
+    return report(machine).best_history_entry.measurement[1]
+end
+
 function writeSubmission(test, machine, filename)
     #Methods for producing the submision with a trained model
-    sub=predict(machine, test).prob_given_ref
+    sub=MLJ.predict(machine, test).prob_given_ref
     df=DataFrame(id=1:1200,precipitation_nextday=sub[2])
     CSV.write(joinpath(@__DIR__, "..", "submissions", filename),df)
     return df
 end
-
 
 function importTest()
     #Function for importing the test data
@@ -55,4 +59,13 @@ function importTrainFilled()
 
     println("Shape of the training set filled :" ,size(train_filled))
     return train_filled
+end
+
+function importAugmented()
+    #Methods for importing the augmented data
+    augmented=CSV.read(joinpath(@__DIR__, "..", "data", "augmenteddata.csv"), DataFrame)
+    coerce!(augmented,:precipitation_nextday => Multiclass)
+    augmented=augmented[shuffle(1:size(augmented, 1)),:]
+    println("Shape of the augmented set  :" ,size(augmented))
+    return augmented
 end

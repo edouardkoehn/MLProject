@@ -1,18 +1,20 @@
 ### Main file for optimising neuronal network
-
-##Load the daata
 begin
     using CSV, DataFrames, Plots,MLJ,MLJFlux,Random,NNlib, Flux
     include("utils.jl")
-
+end
+### Load the daata
+begin
     #import test
     test=importTest()
     #import cleaned train
     train=importTrainCleaned()
     #import filled train
     train_filled=importTrainFilled()
-    #subset for PUY weather station  
-    train_PUY= hcat(select(train, r"PUY"), DataFrame(precipitation_nextday=train.precipitation_nextday))
+    #train standardized
+    train_std=MLJ.transform(machine(Standardizer(), select(train, Not(:precipitation_nextday)))|>fit!,train)
+    #train filled standardized
+    train_filled_std= MLJ.transform(fit!(machine(Standardizer(), select(train, Not(:precipitation_nextday)))), train_filled)
 end
 
 ## Neuronal tuning process
@@ -32,16 +34,12 @@ begin
                                   values = [500, 1000, 2000])],
                                   measure=auc)
 
-    train_std=MLJ.transform(machine(Standardizer(), select(train, Not(:precipitation_nextday)))|>fit!,train)
-    
-    mach_NN_1=MLJ.fit!(machine(self_NN, select(train, Not(:precipitation_nextday)), train.precipitation_nextday))
-    
+    mach_NN_1=MLJ.fit!(machine(self_NN, select(train_std, Not(:precipitation_nextday)), train_std.precipitation_nextday))
+    report(mach_NN_1)
 end
 begin
-    report(mach_NN_1)
     plotMachine(mach_NN_1,"NN")
     exportMachine("mach_NN_Classifier_n=200.jlso", mach_NN_1)
-    evaluate!(mach_NN_1, measure=auc)
 end
 
 ## Neuronal network optimised
@@ -62,5 +60,3 @@ begin
     evaluate!(mach_NN_2,measure=auc)
     exportMachine("mach_NN_optimised.jlso", mach_NN_2)
 end
-
-
