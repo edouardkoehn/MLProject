@@ -1,4 +1,4 @@
-### Main file for testing the different other Models
+### Main file for testing the different  non-linear models
 begin
     using CSV, DataFrames, Plots,MLJ,MLJLinearModels,StatsPlots
     include("utils.jl")
@@ -97,6 +97,7 @@ end
 begin
     train_filled_std = MLJ.transform(fit!(machine(Standardizer(),select(train_filled, Not(:precipitation_nextday)))))
     mach_XGB_3= machine(self_XGB, train_filled_std,train_filled.precipitation_nextday)|>MLJ.fit!
+    report(mach_XGB_3).best_model
 end
 begin
     exportMachine("mach_XGB1_Classifier_Filled_Standerdized.jlso",mach_XGB_3)

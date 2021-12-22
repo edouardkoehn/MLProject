@@ -1,4 +1,4 @@
-### Main file for optimising neuronal network
+### Main file for generating neuronal networks
 begin
     using CSV, DataFrames, Plots,MLJ,MLJFlux,Random,NNlib, Flux
     include("utils.jl")

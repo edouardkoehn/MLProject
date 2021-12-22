@@ -14,6 +14,8 @@ begin
     train=importTrainCleaned()
     #import filled train
     train_filled=importTrainFilled()
+    #import augmented data
+    augmented=importAugmented()
 end
 
 ## Benchmark submission, LogisticClassifier L2, trained on cleaned data
@@ -255,9 +257,6 @@ begin
                                 eval_metric = "mlogloss",
                                 seed = 0,
                                 nthread = 1)
-
-    
-        augmented=importAugmented()
         machine_sub_8=machine(model_sub_8,select(augmented, Not(:precipitation_nextday)), augmented.precipitation_nextday)|>MLJ.fit!
 end
 begin

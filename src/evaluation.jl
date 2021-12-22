@@ -85,7 +85,7 @@ begin
     println("XBGBoost1 Filled and Standerdized data, AUC: "*  string(getMeasurements(mach_XGBBoost1_Filled_standerdized)))
     #Optimised version of XGBboost with augmented data
     mach_XGBBoost1_Aug=loadMachine("mach_XGB1_Classifier_augmented.jlso")
-    println("XBGBoost1 Augmented, AUC: "*  string(getMeasurements(mach_XGBBoost1_Filled)))
+    println("XBGBoost1 Augmented, AUC: "*  string(getMeasurements(mach_XGBBoost1_Aug)))
     #Decision Tree implementation
     mach_DecisionTree=loadMachine("mach_DecisionTree_Classifier.jlso")
     println("DecisionTree, AUC: "* string(getMeasurements(mach_DecisionTree)))

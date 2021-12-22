@@ -1,7 +1,8 @@
+#Utils file that group all the methods
 using MLJ, CSV, NearestNeighborModels,MLJFlux,Flux,MLJXGBoostInterface
 
 function exportMachine(fileName,model )
-    a#Methods for saving tained machine 
+    #Methods for saving tained machine 
     MLJ.save(joinpath(@__DIR__, "..", "models", fileName),model)
 end
 
