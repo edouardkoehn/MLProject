@@ -1,7 +1,7 @@
 # MLProject
 
 ## Organisation of the repository
-This repo contained all the script and filles used in the project of BIO-322. All the code has been written in Julia (https://julialang.org/). This repository is composed of three folder : 
+This repo contained all the script and filles used in the project of BIO-322. All the code has been written in Julia (https://julialang.org/). You would find the report of the project at the root of the repo. This repository is composed of four folders : 
 - data : 
 It contains all the data needed to run the code. 
 - src:
